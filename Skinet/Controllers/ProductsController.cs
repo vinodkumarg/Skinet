@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Skinet.Data;
 using Skinet.DataAccess.Data;
+using Skinet.DataAccess.Data.Repository.Interfaces;
+using Skinet.Dtos;
 using Skinet.Models;
 using System;
 using System.Collections.Generic;
@@ -14,25 +16,46 @@ namespace Skinet.Controllers
     [Route("api/[Controller]")]
     public class ProductsController: ControllerBase
     {
-        private readonly ApplicationDbContext _dbContext;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public ProductsController(ApplicationDbContext dbContext)
+        public ProductsController(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _dbContext = dbContext;
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Product>>> GetProducts()
+        public async Task<ActionResult<IReadOnlyList<ProductToReturnDto>>> GetProducts()
         {
-            var products = await _dbContext.Products.ToListAsync();
-            return Ok(products);
+            var products = await _unitOfWork.Product.GetAllAsync(includeProperties:"ProductBrand,ProductType");
+
+            return Ok(
+                _mapper.Map<IReadOnlyList<Product>, IReadOnlyList<ProductToReturnDto>>(products)
+            );
+
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Product>> GetProduct(int id)
+        public async Task<ActionResult<ProductToReturnDto>> GetProduct(int id)
         {
-            return await _dbContext.Products.FindAsync(id);
+            var product = await _unitOfWork.Product.GetFirstOrDefaultAsync(p => p.Id == id, includeProperties: "ProductBrand,ProductType");
+
+            return  _mapper.Map<Product, ProductToReturnDto>(product);
+
         }
 
+        [HttpGet("Types")]
+        public async Task<ActionResult<IReadOnlyList<ProductType>>> GetProductTypes()
+        {
+            var productTypes = await _unitOfWork.ProductType.GetAllAsync();
+            return Ok(productTypes);
+        }
+        [HttpGet("Brands")]
+        public async Task<ActionResult<IReadOnlyList<ProductBrand>>> GetProductBrands()
+        {
+            var productBrands = await _unitOfWork.ProductBrand.GetAllAsync();
+            return Ok(productBrands);
+        }
     }
 }

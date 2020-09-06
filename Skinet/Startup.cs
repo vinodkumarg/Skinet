@@ -12,6 +12,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Skinet.DataAccess.Data;
+using Skinet.DataAccess.Data.Repository.Interfaces;
+using Skinet.DataAccess.Data.Repository;
+using AutoMapper;
+using Skinet.Helpers;
 
 namespace Skinet
 {
@@ -29,10 +33,12 @@ namespace Skinet
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            services.AddAutoMapper(typeof(MappingProfiles));
             services.AddDbContext<ApplicationDbContext>(x =>
             {
                 x.UseSqlServer(_configuration.GetConnectionString("DefaultConnection"));
             });
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -46,6 +52,7 @@ namespace Skinet
             app.UseHttpsRedirection();
 
             app.UseRouting();
+            app.UseStaticFiles();
 
             app.UseAuthorization();
 
